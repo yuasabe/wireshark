@@ -1788,7 +1788,7 @@ static int hf_evrsr_SupportedPaymentTypes_externalIdentification = -1;
 /* --- Module CPM-PDU-Descriptions --- --- ---                                */
 
 static int hf_cpm_cpm_CollectivePerceptionMessage_PDU = -1;  /* CollectivePerceptionMessage */
-static int hf_cpm_generationDeltaTime = -1;       /* GenerationDeltaTime */
+static int hf_cpm_generationTime = -1;            /* TimestampIts */
 static int hf_cpm_cpmParameters = -1;             /* CpmParameters */
 static int hf_cpm_managementContainer = -1;       /* CpmManagementContainer */
 static int hf_cpm_stationDataContainer = -1;      /* StationDataContainer */
@@ -18529,7 +18529,7 @@ dissect_cpm_CpmParameters(tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U
 
 
 static const per_sequence_t cpm_CollectivePerceptionMessage_sequence[] = {
-  { &hf_cpm_generationDeltaTime, ASN1_NO_EXTENSIONS     , ASN1_NOT_OPTIONAL, dissect_cam_GenerationDeltaTime },
+  { &hf_cpm_generationTime  , ASN1_NO_EXTENSIONS     , ASN1_NOT_OPTIONAL, dissect_its_TimestampIts },
   { &hf_cpm_cpmParameters   , ASN1_NO_EXTENSIONS     , ASN1_NOT_OPTIONAL, dissect_cpm_CpmParameters },
   { NULL, 0, 0, NULL }
 };
@@ -24825,10 +24825,10 @@ void proto_register_its(void)
       { "CollectivePerceptionMessage", "cpm.CollectivePerceptionMessage_element",
         FT_NONE, BASE_NONE, NULL, 0,
         NULL, HFILL }},
-    { &hf_cpm_generationDeltaTime,
-      { "generationDeltaTime", "cpm.generationDeltaTime",
-        FT_UINT32, BASE_DEC, NULL, 0,
-        NULL, HFILL }},
+    { &hf_cpm_generationTime,
+      { "generationTime", "cpm.generationTime",
+        FT_UINT64, BASE_DEC|BASE_VAL64_STRING, VALS64(its_TimestampIts_vals), 0,
+        "TimestampIts", HFILL }},
     { &hf_cpm_cpmParameters,
       { "cpmParameters", "cpm.cpmParameters_element",
         FT_NONE, BASE_NONE, NULL, 0,
@@ -26229,6 +26229,9 @@ void proto_reg_handoff_its(void)
 
     // Enable decode as for its pdu's send via udp
     dissector_add_for_decode_as("udp.port", its_handle_);
+    dissector_add_for_decode_as("tcp.port", its_handle_);
+
+    dissector_add_uint("tcp.port", 6000, its_handle_);
 
     dissector_add_uint("its.msg_id", (ITS_DENM_PROT_VER << 16) + ITS_DENM,          create_dissector_handle( dissect_denm_DecentralizedEnvironmentalNotificationMessage_PDU, proto_its_denm ));
     dissector_add_uint("its.msg_id", (ITS_DENM_PROT_VERv1 << 16) + ITS_DENM,        create_dissector_handle( dissect_denmv1_DecentralizedEnvironmentalNotificationMessageV1_PDU, proto_its_denmv1 ));
@@ -26247,6 +26250,10 @@ void proto_reg_handoff_its(void)
     dissector_add_uint("its.msg_id", ITS_EVCSN,                                     create_dissector_handle( dissect_evcsn_EVChargingSpotNotificationPOIMessage_PDU, proto_its_evcsn ));
     dissector_add_uint("its.msg_id", (ITS_TIS_TPG_PROT_VER << 16) + ITS_TISTPGTRANSACTION, create_dissector_handle( dissect_tistpg_TisTpgTransaction_PDU, proto_its_tistpg ));
     dissector_add_uint("its.msg_id", (ITS_CPM_PROT_VER << 16) + ITS_CPM,            create_dissector_handle(dissect_cpm_CollectivePerceptionMessage_PDU, proto_its_cpm));
+
+
+    dissector_add_for_decode_as("udp.port", create_dissector_handle( dissect_cam_CoopAwareness_PDU, proto_its_cam ));
+    dissector_add_for_decode_as("tcp.port", create_dissector_handle(dissect_cpm_CollectivePerceptionMessage_PDU, proto_its_cpm));
 
     /* Missing definitions: ITS_POI, ITS_SAEM */
 
